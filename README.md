@@ -1,10 +1,5 @@
 # DCA Telegram Bot (English/Farsi)
 
-<div align="center">
-  <!-- Optionally, replace the placeholder with your own image link or remove this block -->
-  <img src="https://user-images.githubusercontent.com/0000/placeholder.png" width="200" alt="Bot Logo" />
-</div>
-
 A **Telegram Bot** that demonstrates how Dollar-Cost Averaging (DCA) can perform over a given time period, supporting both **English** and **Farsi** (Persian) languages. Users can specify:
 
 - **Total investment** (USD)  
@@ -37,16 +32,6 @@ The bot then compares the **DCA** approach to a **lump-sum** buy, calculates you
 4. **Chart Generation** – Visualizes purchase prices over time using Matplotlib and sends the chart as an image in Telegram.
 5. **Persian Digit Handling** – The bot parses both English and Persian numeric inputs, plus words like “هفتگی,” “هر دو هفته,” etc.
 6. **Settings Menu** – Inline buttons for quickly changing language or restarting.
-
-
-## Screenshots
-
-<!-- You can replace these images with your own, or remove this section if you prefer. -->
-<p align="center">
-  <img src="https://user-images.githubusercontent.com/0000/screenshot1.png" width="300" alt="Screenshot 1"/>
-  <img src="https://user-images.githubusercontent.com/0000/screenshot2.png" width="300" alt="Screenshot 2"/>
-</p>
-
 
 
 **Key modules**:
