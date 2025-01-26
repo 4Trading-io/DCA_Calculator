@@ -2,8 +2,8 @@
 
 def tr(key: str, lang: str = 'en') -> str:
     """
-    Return the translated string for a given key and language code.
-    If a key is missing in the chosen language, it falls back to English.
+    برگرداندن متن ترجمه شده برای کلید داده‌شده در زبان مربوطه.
+    اگر کلید در زبان خواسته‌شده موجود نباشد، متن زبان انگلیسی برگردانده می‌شود.
     """
     return MESSAGES[lang].get(key, MESSAGES['en'].get(key, key))
 
@@ -22,7 +22,7 @@ MESSAGES = {
             "*How this bot works:*\n"
             "• We'll ask for your total investment\n"
             "• Your crypto pair\n"
-            "• The time period\n"
+            "• The time period or exact date range\n"
             "• How often you invest\n"
             "Then we'll compare your DCA returns vs. a lump-sum buy.\n\n"
             "Use the buttons below to select language or type /help. You can always "
@@ -52,6 +52,7 @@ MESSAGES = {
             "💱 *Step 2:* Which *crypto pair* would you like to invest in?\n\n"
             "_Example:_ BTC/USDT, ETH/USDT, etc."
         ),
+        # ------ Range or Period ------
         "ask_range_or_period": (
             "Would you like to specify an *exact custom date range (start & end)*,\n"
             "or use the *traditional period method*?\n\n"
@@ -61,11 +62,35 @@ MESSAGES = {
             "- 'range'\n"
             "- 'period'"
         ),
-        # NEW KEY: after user chooses "range"
         "ask_range_continue": (
             "Great! We'll collect *start date* and *end date* next.\n\n"
             "Type anything to continue..."
         ),
+        "ask_range_start_instructions": (
+            "📅 *Custom Date Range (Start)*\n\n"
+            "Please provide your *start date*. You can use:\n"
+            "- An exact date, e.g. `2022-01-01`\n"
+            "- A relative expression, e.g. `1 year ago`, `6 months ago`, `today`\n\n"
+            "Examples:\n"
+            "`2023-01-01`\n"
+            "`1 year ago`\n\n"
+            "Type your start date now:"
+        ),
+        "ask_range_end_instructions": (
+            "📅 *Custom Date Range (End)*\n\n"
+            "Now provide your *end date*. You can also use:\n"
+            "- Exact date, e.g. `2023-01-01`\n"
+            "- Relative expression, e.g. `6 months ago`, `today`\n\n"
+            "Examples:\n"
+            "`2023-06-01`\n"
+            "`6 months ago`\n"
+            "`today`\n\n"
+            "Type your end date now:"
+        ),
+        # ------ Range parse errors ------
+        "range_parse_error_start": "❌ {error}\nTry again. Example: `2022-01-01` or `6 months ago`",
+        "range_parse_error_end": "❌ {error}\nTry again. Example: `2023-01-01` or `2 weeks ago` or `today`",
+
         "ask_period": (
             "⏱ *Step 3:* Over what period do you want to invest?\n\n"
             "_Examples:_ 1 year, 6 months, 2 weeks."
@@ -100,6 +125,7 @@ MESSAGES = {
         "language_choice_en": "English",
         "language_choice_es": "Farsi",
     },
+
     'fa': {
         "start_multi_lang_msg": (
             "سلام! / Hello!\n\n"
@@ -115,9 +141,9 @@ MESSAGES = {
             "*این ربات چگونه کار می‌کند:*\n"
             "• مبلغ کل سرمایه‌گذاری شما\n"
             "• جفت رمز ارزی که می‌خواهید بخرید\n"
-            "• مدت زمان سرمایه‌گذاری\n"
+            "• مدت زمان یا بازهٔ تاریخی دقیق سرمایه‌گذاری\n"
             "• تناوب خریدهای شما\n"
-            "سپس بازدهی DCA را با خرید یکجای دارایی مقایسه می‌کنیم.\n\n"
+            "در نهایت بازدهی روش DCA را با خرید یکجای دارایی مقایسه می‌کنیم.\n\n"
             "از دکمه‌های زیر برای انتخاب زبان استفاده کنید یا دستور /help را وارد کنید. "
             "همچنین می‌توانید با دکمهٔ «Settings» در آینده زبان را تغییر دهید.\n\n"
             "*آماده‌اید شروع کنیم؟* 🚀"
@@ -145,22 +171,53 @@ MESSAGES = {
             "💱 *مرحلهٔ ۲:* روی کدام *جفت رمزارز* می‌خواهید سرمایه‌گذاری کنید؟\n\n"
             "_مثال:_ BTC/USDT، ETH/USDT"
         ),
+        # ------ Range or Period ------
         "ask_range_or_period": (
             "آیا می‌خواهید یک *بازهٔ تاریخی دقیق* (تاریخ شروع و پایان) مشخص کنید،\n"
             "یا از روش *سنتی دوره (period)* استفاده کنید؟\n\n"
             "عبارت 'range' را وارد کنید تا تاریخ‌های شروع/پایان تعیین شود "
             "(چه تاریخ دقیق مانند `2022-01-01`، چه نسبی مثل `1 year ago`).\n"
-            "عبارت 'period' را وارد کنید تا روش دوره‌ای معمول را پی بگیرید (مثلاً '1 year' همراه با"
+            "عبارت 'period' را وارد کنید تا روش دوره‌ای معمول را پی بگیرید (مثلاً '1 year' همراه با "
             "تاریخ شروع اختیاری).\n\n"
             "نمونه:\n"
             "- `range`\n"
             "- `period`"
         ),
-        # NEW KEY => for the "Great! We'll collect start date..."
         "ask_range_continue": (
             "عالی! الان تاریخ شروع و تاریخ پایان را دریافت می‌کنیم.\n\n"
             "لطفاً هر چیزی تایپ کنید تا ادامه دهیم..."
         ),
+        "ask_range_start_instructions": (
+            "📅 *بازهٔ تاریخی سفارشی (تاریخ شروع)*\n\n"
+            "لطفاً تاریخ شروع خود را وارد کنید. می‌توانید از قالب‌های زیر استفاده کنید:\n"
+            "- تاریخ دقیق، مثل `2022-01-01`\n"
+            "- عبارت نسبی، مثل `1 year ago`، `6 months ago`، `today`\n\n"
+            "مثال‌ها:\n"
+            "`2023-01-01`\n"
+            "`1 year ago`\n\n"
+            "تاریخ شروع را اکنون وارد کنید:"
+        ),
+        "ask_range_end_instructions": (
+            "📅 *بازهٔ تاریخی سفارشی (تاریخ پایان)*\n\n"
+            "حالا تاریخ پایان خود را وارد کنید. می‌توانید از قالب‌های زیر استفاده کنید:\n"
+            "- تاریخ دقیق، مثل `2023-01-01`\n"
+            "- عبارت نسبی، مثل `6 months ago`، `today`\n\n"
+            "مثال‌ها:\n"
+            "`2023-06-01`\n"
+            "`6 months ago`\n"
+            "`today`\n\n"
+            "تاریخ پایان را اکنون وارد کنید:"
+        ),
+        # ------ Range parse errors ------
+        "range_parse_error_start": (
+            "❌ {error}\n"
+            "لطفاً دوباره تلاش کنید. مثال: `2022-01-01` یا `6 months ago`"
+        ),
+        "range_parse_error_end": (
+            "❌ {error}\n"
+            "لطفاً دوباره امتحان کنید. مثال: `2023-01-01` یا `2 weeks ago` یا `today`"
+        ),
+
         "ask_period": (
             "⏱ *مرحلهٔ ۳:* می‌خواهید در چه بازه‌ای سرمایه‌گذاری کنید؟\n\n"
             "_مثال‌ها:_ ۱ سال، ۶ ماه، ۲ هفته."

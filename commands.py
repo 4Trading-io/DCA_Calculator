@@ -1,5 +1,3 @@
-# commands.py
-
 import logging
 from datetime import datetime, timedelta
 
@@ -78,9 +76,10 @@ def register_handlers(bot: TeleBot, store: DataStore):
         session = store.reset_session(user_id)
         session.state = BotState.LANG_SELECT
 
+        # نمایش پیام چند زبانهٔ ابتدایی
         bot.send_message(
             user_id,
-            tr("start_multi_lang_msg", 'en'),  # Bilingual
+            tr("start_multi_lang_msg", 'en'),
             reply_markup=language_inline_keyboard(),
             parse_mode="Markdown"
         )
@@ -97,7 +96,7 @@ def register_handlers(bot: TeleBot, store: DataStore):
             session.lang = 'fa'
             bot.answer_callback_query(call.id, tr("language_set_es", 'fa'))
 
-        # Show DCA explanation
+        # توضیحات ربات در زبان انتخابی
         bot.send_message(
             user_id,
             tr("welcome_dca_explanation", session.lang),
@@ -252,7 +251,7 @@ def handle_symbol(bot, store, message):
     session.state = BotState.ASK_DATE_RANGE_OR_PERIOD
     bot.send_message(
         user_id,
-        tr("ask_range_or_period", session.lang),  # localized
+        tr("ask_range_or_period", session.lang),
         parse_mode="Markdown"
     )
 
@@ -261,10 +260,8 @@ def handle_ask_date_range_or_period(bot, store, message):
     session = store.get_session(user_id)
     text = message.text.lower()
 
-    # For Farsi, you might also interpret "رنج" or "دوره", but let's keep it simple:
     if "range" in text:
         session.state = BotState.ASK_CUSTOM_BOTH_RANGE
-        # USE THE NEW LOCALIZED MSG
         bot.send_message(
             user_id,
             tr("ask_range_continue", session.lang),
@@ -278,7 +275,6 @@ def handle_ask_date_range_or_period(bot, store, message):
             parse_mode="Markdown"
         )
     else:
-        # Re-show the localized "ask_range_or_period"
         bot.send_message(
             user_id,
             tr("ask_range_or_period", session.lang),
@@ -290,18 +286,12 @@ def handle_ask_both_range(bot, store, message):
     session = store.get_session(user_id)
     session.state = BotState.ENTERING_RANGE_START
 
-    msg_text = (
-        "📅 *Custom Date Range (Start)*\n\n"
-        "Please provide your *start date*. You can use:\n"
-        "- An exact date, e.g. `2022-01-01`\n"
-        "- A relative expression, e.g. `1 year ago`, `6 months ago`, `today`\n\n"
-        "Examples:\n"
-        "`2023-01-01`\n"
-        "`1 year ago`\n\n"
-        "Type your start date now:"
+    # پیام راهنمای تاریخ شروع (فارسی/انگلیسی)
+    bot.send_message(
+        user_id,
+        tr("ask_range_start_instructions", session.lang),
+        parse_mode="Markdown"
     )
-    # If you want to localize this too, add a new key in localization.py
-    bot.send_message(user_id, msg_text, parse_mode="Markdown")
 
 def handle_range_start(bot, store, message, parse_func):
     user_id = message.chat.id
@@ -312,22 +302,18 @@ def handle_range_start(bot, store, message, parse_func):
         start_dt = parse_func(text)
         session.custom_start_date = start_dt
         session.state = BotState.ENTERING_RANGE_END
-        msg_text = (
-            "📅 *Custom Date Range (End)*\n\n"
-            "Now provide your *end date*. You can also use:\n"
-            "- Exact date, e.g. `2023-01-01`\n"
-            "- Relative expression, e.g. `6 months ago`, `today`\n\n"
-            "Examples:\n"
-            "`2023-06-01`\n"
-            "`6 months ago`\n"
-            "`today`\n\n"
-            "Type your end date now:"
-        )
-        bot.send_message(user_id, msg_text, parse_mode="Markdown")
-    except ValueError as e:
+
+        # پیام راهنمای تاریخ پایان
         bot.send_message(
             user_id,
-            f"❌ {str(e)}\nTry again. Example: `2022-01-01` or `6 months ago`",
+            tr("ask_range_end_instructions", session.lang),
+            parse_mode="Markdown"
+        )
+    except ValueError as e:
+        # اگر خطا در پارس تاریخ رخ دهد، از کلید جدید استفاده می‌کنیم
+        bot.send_message(
+            user_id,
+            tr("range_parse_error_start", session.lang).format(error=str(e)),
             parse_mode="Markdown"
         )
 
@@ -340,6 +326,7 @@ def handle_range_end(bot, store, message, parse_func):
         end_dt = parse_func(text)
         session.custom_range_end_date = end_dt
         session.state = BotState.ENTERING_FREQUENCY
+
         bot.send_message(
             user_id,
             tr("ask_frequency", session.lang),
@@ -348,7 +335,7 @@ def handle_range_end(bot, store, message, parse_func):
     except ValueError as e:
         bot.send_message(
             user_id,
-            f"❌ {str(e)}\nTry again. Example: `2023-01-01` or `2 weeks ago` or `today`",
+            tr("range_parse_error_end", session.lang).format(error=str(e)),
             parse_mode="Markdown"
         )
 
@@ -356,6 +343,7 @@ def handle_period(bot, store, message):
     user_id = message.chat.id
     session = store.get_session(user_id)
     session.period_str = message.text.strip()
+
     session.state = BotState.ASK_CUSTOM_START
     bot.send_message(
         user_id,
@@ -454,12 +442,10 @@ def perform_calculation(bot, store, message):
         frequency_str = session.frequency_str
         fee_percent = session.fee_percent
 
-        # Decide start_dt, end_dt
         if session.custom_range_end_date:
             start_dt = session.custom_start_date
             end_dt = session.custom_range_end_date
         else:
-            # old approach => period + optional custom start
             end_dt = datetime.utcnow()
             if session.custom_start_date:
                 start_dt = session.custom_start_date
