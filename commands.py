@@ -137,6 +137,21 @@ def register_handlers(bot: TeleBot, store: DataStore):
         user_id = message.chat.id
         store.reset_session(user_id)
         bot.send_message(user_id, tr("restart_message", 'en'), parse_mode="Markdown")
+        
+    @bot.message_handler(commands=["language"])
+    def command_language(message):
+        user_id = message.chat.id
+        session = store.get_session(user_id)
+
+        # Show the same inline keyboard you do in your "Settings" flow
+        kb = types.InlineKeyboardMarkup()
+        kb.add(types.InlineKeyboardButton(tr("choose_lang_button", session.lang), callback_data="show_lang"))
+        bot.send_message(
+            user_id,
+            tr("settings_menu", session.lang),
+            reply_markup=kb,
+            parse_mode="Markdown"
+        )
 
     @bot.message_handler(func=lambda m: m.text == "Settings")
     def command_settings(message):
