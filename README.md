@@ -43,12 +43,8 @@ The bot then compares the **DCA** approach to a **lump-sum** buy, calculates you
 - **`chart.py`** – Generates a PNG plot with Matplotlib.
 
 
-
----
-
 ## 7. **Usage**
 
-```markdown
 ## Usage
 
 - In **Telegram**, find your bot (e.g., `t.me/<YourBotUsername>`) and type `/start`.  
