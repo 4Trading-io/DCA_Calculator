@@ -1,3 +1,5 @@
+# commands.py
+
 import logging
 from datetime import datetime, timedelta
 
@@ -76,7 +78,6 @@ def register_handlers(bot: TeleBot, store: DataStore):
         session = store.reset_session(user_id)
         session.state = BotState.LANG_SELECT
 
-        # نمایش پیام چند زبانهٔ ابتدایی
         bot.send_message(
             user_id,
             tr("start_multi_lang_msg", 'en'),
@@ -96,7 +97,6 @@ def register_handlers(bot: TeleBot, store: DataStore):
             session.lang = 'fa'
             bot.answer_callback_query(call.id, tr("language_set_es", 'fa'))
 
-        # توضیحات ربات در زبان انتخابی
         bot.send_message(
             user_id,
             tr("welcome_dca_explanation", session.lang),
@@ -143,7 +143,6 @@ def register_handlers(bot: TeleBot, store: DataStore):
         user_id = message.chat.id
         session = store.get_session(user_id)
 
-        # Show the same inline keyboard you do in your "Settings" flow
         kb = types.InlineKeyboardMarkup()
         kb.add(types.InlineKeyboardButton(tr("choose_lang_button", session.lang), callback_data="show_lang"))
         bot.send_message(
@@ -179,7 +178,7 @@ def register_handlers(bot: TeleBot, store: DataStore):
             parse_mode="Markdown"
         )
 
-    # ---------- MAIN FLOW ----------
+    # -------- MAIN FLOW --------
     @bot.message_handler(func=lambda m: True)
     def conversation_flow(message):
         user_id = message.chat.id
@@ -234,8 +233,7 @@ def register_handlers(bot: TeleBot, store: DataStore):
                 parse_mode="Markdown"
             )
 
-# ---------- Step Handlers ----------
-
+# ---- Step Handlers ----
 def handle_investment_amount(bot, store, message):
     user_id = message.chat.id
     session = store.get_session(user_id)
@@ -301,7 +299,6 @@ def handle_ask_both_range(bot, store, message):
     session = store.get_session(user_id)
     session.state = BotState.ENTERING_RANGE_START
 
-    # پیام راهنمای تاریخ شروع (فارسی/انگلیسی)
     bot.send_message(
         user_id,
         tr("ask_range_start_instructions", session.lang),
@@ -318,14 +315,12 @@ def handle_range_start(bot, store, message, parse_func):
         session.custom_start_date = start_dt
         session.state = BotState.ENTERING_RANGE_END
 
-        # پیام راهنمای تاریخ پایان
         bot.send_message(
             user_id,
             tr("ask_range_end_instructions", session.lang),
             parse_mode="Markdown"
         )
     except ValueError as e:
-        # اگر خطا در پارس تاریخ رخ دهد، از کلید جدید استفاده می‌کنیم
         bot.send_message(
             user_id,
             tr("range_parse_error_start", session.lang).format(error=str(e)),
@@ -411,7 +406,12 @@ def handle_custom_start(bot, store, message):
 def handle_frequency(bot, store, message):
     user_id = message.chat.id
     session = store.get_session(user_id)
-    session.frequency_str = message.text.strip()
+    freq_str = message.text.strip()
+    # parse freq => daily or hourly
+    (freq_value, is_hourly) = parse_investment_frequency(freq_str)
+
+    session.freq_value = freq_value
+    session.freq_is_hourly = is_hourly
 
     session.state = BotState.ENTERING_FEE
     bot.send_message(
@@ -454,13 +454,15 @@ def perform_calculation(bot, store, message):
     try:
         total_investment = session.total_investment
         symbol = session.symbol
-        frequency_str = session.frequency_str
+        freq_value = session.freq_value
+        is_hourly = session.freq_is_hourly
         fee_percent = session.fee_percent
 
         if session.custom_range_end_date:
             start_dt = session.custom_start_date
             end_dt = session.custom_range_end_date
         else:
+            # period approach
             end_dt = datetime.utcnow()
             if session.custom_start_date:
                 start_dt = session.custom_start_date
@@ -471,19 +473,21 @@ def perform_calculation(bot, store, message):
         if start_dt > end_dt:
             raise ValueError("Start date is after end date. Please ensure start <= end.")
 
-        freq_days = parse_investment_frequency(frequency_str)
+        # Now call calculate_dca with the new approach
         dca_result = calculate_dca(
             total_investment=total_investment,
             symbol=symbol,
             start_dt=start_dt,
             end_dt=end_dt,
-            frequency_days=freq_days,
+            freq_value=freq_value,
+            is_hourly=is_hourly,
             fee_percent=fee_percent
         )
 
         chart_path = create_dca_plot(dca_result["purchase_history"], symbol)
 
         report_text = build_report_caption(dca_result, lang)
+        # Truncate if caption is too long
         if len(report_text) > 1000:
             report_text = report_text[:1000] + "\n... (truncated)"
 
@@ -515,6 +519,10 @@ def perform_calculation(bot, store, message):
         session.state = BotState.IDLE
 
 def build_report_caption(dca_result, lang):
+    """
+    We keep the old approach for final text.
+    You could add your own annualized logic, etc.
+    """
     symbol = dca_result["symbol"]
     total_inv = dca_result["total_investment"]
     total_coins = dca_result["total_coins_purchased"]
@@ -523,8 +531,6 @@ def build_report_caption(dca_result, lang):
     curr_value = dca_result["current_portfolio_value"]
     roi = dca_result["roi_percent"]
     ls_roi = dca_result["lump_sum_roi"]
-    ann_dca = dca_result["annualized_dca"]
-    ann_ls = dca_result["annualized_lump_sum"]
 
     if lang == 'fa':
         caption = (
@@ -535,11 +541,9 @@ def build_report_caption(dca_result, lang):
             f"⚖️ **میانگین قیمت خرید:** {avg_price:,.2f}$\n"
             f"🔎 **قیمت فعلی:** {curr_price:,.2f}$\n"
             f"💼 **ارزش فعلی پرتفوی:** {curr_value:,.2f}$\n"
-            f"📈 **درصد بازدهی (ROI):** {roi:+.2f}%\n"
-            f"📅 **بازدهی سالیانه (تقریبی):** {ann_dca:+.2f}%\n\n"
+            f"📈 **درصد بازدهی (ROI):** {roi:+.2f}%\n\n"
             f"💥 **مقایسه با خرید یکجا:**\n"
-            f"• بازدهی کلی: {ls_roi:+.2f}%\n"
-            f"• بازدهی سالیانه: {ann_ls:+.2f}%\n\n"
+            f"• بازدهی کلی: {ls_roi:+.2f}%\n\n"
             f"_DCA می‌تواند ریسک زمان‌بندی بازار را کم کند (مشاورهٔ مالی نیست)_"
         )
     else:
@@ -551,11 +555,9 @@ def build_report_caption(dca_result, lang):
             f"⚖️ **Average Cost:** ${avg_price:,.2f}\n"
             f"🔎 **Current Price:** ${curr_price:,.2f}\n"
             f"💼 **Current Portfolio Value:** ${curr_value:,.2f}\n"
-            f"📈 **ROI:** {roi:+.2f}%\n"
-            f"📅 **Annualized ROI:** {ann_dca:+.2f}%\n\n"
+            f"📈 **ROI:** {roi:+.2f}%\n\n"
             f"💥 **Lump-Sum Comparison:**\n"
-            f"• Overall ROI: {ls_roi:+.2f}%\n"
-            f"• Annualized: {ann_ls:+.2f}%\n\n"
+            f"• Overall ROI: {ls_roi:+.2f}%\n\n"
             f"_DCA helps reduce market-timing risk (Not financial advice)_"
         )
     return caption
